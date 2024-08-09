@@ -15,29 +15,33 @@ class FrascatiPromptGenerator:
         self.input_section = None
         self.section = None
         self.risposta = None
+        self.lenghts = {'ABSTRACT': 150,
+                        'DESCRIZIONE DEL PROGETTO\nObiettivi generali': 1793,
+                        'STATO DELL’ARTE DEL PROGETTO': 1131,
+                        'ELEMENTI DI NOVITÀ': 1323,
+                        'CREATIVITÀ / OSTACOLO TECNOLOGICO': 2146,
+                        'ELEMENTI DI INCERTEZZA': 1512}
+        self.baseline_len = 1000
 
     def _build_init(self, section: str, section_description: str) -> str:
+        self.baseline_len = len(section_description)
         text = f"""
 Manuale di Frascati - Sezione: {section}
 Definizione: {section_description}
 Compito: Compila la sezione "{section}" per un progetto di ricerca e sviluppo seguendo il Manuale di Frascati. Enfatizza gli aspetti innovativi e di R&S, dimostrando come i risultati ottenuti siano nuovi o significativamente migliorati rispetto allo stato dell'arte."""
         return text
 
-    def _build_positive_examples(self, positive_context: str, positive_answer: str) -> str:
-        text = f"""
-Esempio:
-Contesto: {positive_context}
-Risposta: {positive_answer}"""
-        return text
-
-    def _build_context(self, context, section, positive_answer) -> str:
-        len_pos_ans = int(np.mean([len(pa) for pa in positive_answer]))
+    def _build_context(self, context, section) -> str:
+        try:
+            len_ans = self.lenghts[section]
+        except:
+            len_ans = self.baseline_len*2
         text = f"""
 Istruzioni:
-1. Basati principalmente sul contesto fornito.
+1. Basati sul contesto attuale fornito.
 2. Se necessario, integra con informazioni verosimili e pertinenti.
 3. Evidenzia in MAIUSCOLO le parti non presenti nel contesto.
-4. Mantieni una lunghezza che sta tra {len_pos_ans} e {int(len_pos_ans * 1.5)} caratteri.
+4. Mantieni una lunghezza che sta tra {int(len_ans*0.75)} e {int(len_ans * 1.25)} caratteri.
 5. Rispondi con {section}: risposta, nient'altro.
 
 Contesto attuale: {context}
@@ -49,21 +53,13 @@ Risposta:
     def _build_prompt(self,
                       section: str,
                       section_description: str,
-                      positive_context: list[str],
-                      positive_answer: list[str],
                       context: str) -> str:
         prompt = ""
 
         prompt += self._build_init(section, section_description).strip() + "\n\n"
 
-        for el in zip(positive_context, positive_answer):
-            prompt += self._build_positive_examples(el[0], el[1]).strip() + "\n\n"
-
         prompt += self._build_context(context=context,
-                                      section=section,
-                                      positive_answer=positive_answer).strip()
-
-
+                                      section=section).strip()
 
         return prompt
 
@@ -71,8 +67,6 @@ Risposta:
     def __build_prompt(self,
                       section: str,
                       section_description: str,
-                      positive_context: list[str],
-                      positive_answer: list[str],
                       context: str
                       ) -> str:
 
@@ -80,12 +74,9 @@ Risposta:
 
         prompt += self._build_init(section,
                                    section_description)
-        for el in zip(positive_context, positive_answer):
-            prompt += self._build_positive_examples(el[0], el[1])
 
         prompt += self._build_context(context=context,
-                                      section=section,
-                                      positive_answer=positive_answer)
+                                      section=section)
 
         prompt = prompt.strip()
 
@@ -93,28 +84,14 @@ Risposta:
 
     def generate_prompt(self,
                         section: str,
-                        positive_columns: Union[str, list[str]],
-                        positive_context: Union[str, list[str]],
                         context: str) -> str:
 
         if section not in self.frascati_dict:
             raise ValueError(f"Section '{section}' not found. Please add it using add_section().")
 
         section_description = self.frascati_dict[section]
-
-        if type(positive_columns) == str:
-            positive_columns = [positive_columns]
-
-        for col in positive_columns:
-
-            self.positive_examples[positive_columns.index(col)] = dict(self.frascati_file[[self.frascati_section_col,
-                                                                                           col]].values)
-        positive_answers = [self.positive_examples[positive_columns.index(col)][section] for col in positive_columns]
-
         return self._build_prompt(section,
                                   section_description,
-                                  positive_context,
-                                  positive_answers,
                                   context)
 
     def add_positive_example(self, column_name, positive_context) -> None:
@@ -122,14 +99,3 @@ Risposta:
             'examples': dict(self.frascati_file[[self.frascati_section_col, column_name]].values),
             'context': positive_context
         }
-
-
-if __name__ == '__main__':
-    fpg = FrascatiPromptGenerator(
-        excel_file=r"",
-        sheet_name="FRASCATI")
-
-    fpg.generate_prompt(section="ABSTRACT",
-                        positive_columns='Topic- Review\nprogramma 1 - \nDEVICE INTEGRATION PRODUCT  - MCD30',
-                        positive_context="ciaociao",
-                        context="contesto")

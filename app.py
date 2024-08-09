@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-
 from main import FrascatiPromptGenerator
 
 def main():
@@ -36,11 +35,7 @@ def main():
         text_col = st.selectbox("Seleziona la colonna di testo Frascati", df.columns, index=df.columns.get_loc(default_text_col))
         st.info("Seleziona la colonna che contiene il testo di ciascuna sezione del Manuale di Frascati.")
 
-        # Selezione delle colonne di esempio positivo
-        positive_cols = st.multiselect("Seleziona le colonne di esempio positivo", df.columns)
-        st.info("Seleziona una o più colonne che contengono esempi positivi. Questi esempi sono utilizzati per migliorare la qualità dei prompt generati.")
-
-        if domain_col and text_col and positive_cols:
+        if domain_col and text_col:
             # Selezione delle sezioni disponibili nella colonna del dominio
             sections = df[domain_col].unique()
             selected_sections = st.multiselect("Scegli le sezioni del Manuale di Frascati", sections)
@@ -53,16 +48,6 @@ def main():
                 # Instanzia la classe FrascatiPromptGenerator con il DataFrame e le colonne selezionate
                 prompt_generator = FrascatiPromptGenerator(df, domain_col, text_col)
 
-                # Input per i contesti positivi
-                st.write("Inserisci i contesti positivi per ciascuna colonna selezionata:")
-                positive_contexts = {}
-                for col in positive_cols:
-                    # Permette all'utente di inserire un contesto positivo per ciascuna colonna
-                    context = st.text_area(f"Inserisci il contesto positivo per la colonna '{col}'", "")
-                    st.info("Inserisci un contesto o una descrizione che rappresenta un esempio positivo per la colonna selezionata. Questo aiuta a migliorare la qualità dei prompt generati.")
-                    if context:
-                        positive_contexts[col] = context
-
                 # Input per il contesto della risposta
                 st.write("Inserisci il contesto che dovrebbe essere usato nella risposta:")
                 response_context = st.text_area("Inserisci il contesto per la risposta", "")
@@ -74,8 +59,6 @@ def main():
                         for section in selected_sections:
                             prompt = prompt_generator.generate_prompt(
                                 section=section,
-                                positive_columns=positive_cols,
-                                positive_context=[positive_contexts[col] for col in positive_cols],
                                 context=response_context
                             )
 
