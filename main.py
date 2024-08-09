@@ -126,7 +126,7 @@ Risposta:
 
 if __name__ == '__main__':
     fpg = FrascatiPromptGenerator(
-        excel_file=r"C:\Users\ManuelP\OneDrive - Vodafone Group\Desktop\DocumentiPaoloPNRR\Note da Integrare_rev 13.xlsx",
+        excel_file=r"",
         sheet_name="FRASCATI")
 
     fpg.generate_prompt(section="ABSTRACT",
